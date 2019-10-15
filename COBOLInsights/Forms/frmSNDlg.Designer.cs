@@ -77,6 +77,7 @@ namespace Kbg.NppPluginNET
             this.Name = "frmSNDlg";
             this.Text = "Source Navigation";
             this.Shown += new System.EventHandler(this.frmSNDlg_Shown);
+            this.VisibleChanged += new System.EventHandler(this.frmSNDlg_VisibleChanged);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);

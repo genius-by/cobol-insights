@@ -13,13 +13,12 @@ namespace Kbg.NppPluginNET
     {
         internal const string PluginName = "COBOLInsights";
         static string iniFilePath = null;
-        static bool someSetting = false;
+        //static bool someSetting = false;
         static frmSNDlg frmSNDlg = null;
         static int idSNDlg = -1;
         static Bitmap tbBmp = COBOLInsights.Properties.Resources.list_icon;
         static Bitmap tbBmp_tbTab = COBOLInsights.Properties.Resources.list_icon;
         static Icon tbIcon = null;
-        static IScintillaGateway Editor;
         
 
         public static void OnNotification(ScNotification notification)
@@ -47,7 +46,7 @@ namespace Kbg.NppPluginNET
             iniFilePath = sbIniFilePath.ToString();
             if (!Directory.Exists(iniFilePath)) Directory.CreateDirectory(iniFilePath);
             iniFilePath = Path.Combine(iniFilePath, PluginName + ".ini");
-            someSetting = (Win32.GetPrivateProfileInt("SomeSection", "SomeKey", 0, iniFilePath) != 0);
+            //someSetting = (Win32.GetPrivateProfileInt("SomeSection", "SomeKey", 0, iniFilePath) != 0);
 
             PluginBase.SetCommand(0, "MyMenuCommand", MyMenuFunction, new ShortcutKey(false, false, false, Keys.None));
             PluginBase.SetCommand(1, "Source Navigation", SourceNavigationDialog); idSNDlg = 1;
@@ -67,7 +66,7 @@ namespace Kbg.NppPluginNET
 
         internal static void PluginCleanUp()
         {
-            Win32.WritePrivateProfileString("SomeSection", "SomeKey", someSetting ? "1" : "0", iniFilePath);
+            //Win32.WritePrivateProfileString("SomeSection", "SomeKey", someSetting ? "1" : "0", iniFilePath);
         }
 
 
@@ -78,51 +77,79 @@ namespace Kbg.NppPluginNET
 
         internal static void SourceNavigationDialog()
         {
-            Editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
             if (frmSNDlg == null)
             {
                 frmSNDlg = new frmSNDlg();
-                using (Bitmap newBmp = new Bitmap(16, 16))
-                {
-                    Graphics g = Graphics.FromImage(newBmp);
-                    ColorMap[] colorMap = new ColorMap[1];
-                    colorMap[0] = new ColorMap();
-                    colorMap[0].OldColor = Color.Fuchsia;
-                    colorMap[0].NewColor = Color.FromKnownColor(KnownColor.ButtonFace);
-                    ImageAttributes attr = new ImageAttributes();
-                    attr.SetRemapTable(colorMap);
-                    g.DrawImage(tbBmp_tbTab, new Rectangle(0, 0, 16, 16), 0, 0, 16, 16, GraphicsUnit.Pixel, attr);
-                    tbIcon = Icon.FromHandle(newBmp.GetHicon());
-                }
+                InitializeDockableDialogTabIcon(tbBmp_tbTab);
 
-                NppTbData _nppTbData = new NppTbData
-                {
-                    hClient = frmSNDlg.Handle,
-                    pszName = "Source Navigation",
-                    dlgID = idSNDlg,
-                    uMask = NppTbMsg.DWS_DF_CONT_RIGHT | NppTbMsg.DWS_ICONTAB | NppTbMsg.DWS_ICONBAR,
-                    hIconTab = (uint)tbIcon.Handle,
-                    pszModuleName = PluginName
-                };
-                IntPtr _ptrNppTbData = Marshal.AllocHGlobal(Marshal.SizeOf(_nppTbData));
-                Marshal.StructureToPtr(_nppTbData, _ptrNppTbData, false);
-
-                Win32.SendMessage(PluginBase.nppData._nppHandle, (uint) NppMsg.NPPM_DMMREGASDCKDLG, 0, _ptrNppTbData);
-                Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_SETMENUITEMCHECK, PluginBase._funcItems.Items[idSNDlg]._cmdID, 1);
+                IntPtr _ptrNppTbData = CreateNppToolbarDataPointer(frmSNDlg,
+                                                                   "Source Navigation",
+                                                                   idSNDlg,
+                                                                   NppTbMsg.DWS_DF_CONT_LEFT | NppTbMsg.DWS_ICONTAB | NppTbMsg.DWS_ICONBAR,
+                                                                   tbIcon);
+                RegisterNppDockableDialog(_ptrNppTbData);
+                SetToolbarCommandActivatedState(idSNDlg, true);
                 frmSNDlg.UpdateSNListBox();
             }
             else
             {
                 if (!frmSNDlg.Visible)
                 {
-                    Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_DMMSHOW, 0, frmSNDlg.Handle);
-                    Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_SETMENUITEMCHECK, PluginBase._funcItems.Items[idSNDlg]._cmdID, 1);
+                    SetDockableDialogVisibility(frmSNDlg.Handle, true);
+                    SetToolbarCommandActivatedState(idSNDlg, true);
                 }
                 else
                 {
-                    Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_DMMHIDE, 0, frmSNDlg.Handle);
-                    Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_SETMENUITEMCHECK, PluginBase._funcItems.Items[idSNDlg]._cmdID, 0);
+                    SetDockableDialogVisibility(frmSNDlg.Handle, false);
+                    SetToolbarCommandActivatedState(idSNDlg, false);
                 }
+            }
+        }
+
+        private static void SetDockableDialogVisibility(IntPtr handle, bool visible)
+        {
+            Win32.SendMessage(PluginBase.nppData._nppHandle, visible ? (uint)NppMsg.NPPM_DMMSHOW : (uint)NppMsg.NPPM_DMMHIDE, 0, handle);
+        }
+
+        private static void SetToolbarCommandActivatedState(int dialogId, bool pressed)
+        {
+            Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_SETMENUITEMCHECK, PluginBase._funcItems.Items[dialogId]._cmdID, pressed ? 1 : 0);
+        }
+
+        private static void RegisterNppDockableDialog(IntPtr _ptrNppTbData)
+        {
+            Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_DMMREGASDCKDLG, 0, _ptrNppTbData);
+        }
+
+        private static IntPtr CreateNppToolbarDataPointer(Form form, string shownName, int dialogId, NppTbMsg settings, Icon icon)
+        {
+            NppTbData _nppTbData = new NppTbData
+            {
+                hClient = form.Handle,
+                pszName = shownName,
+                dlgID = dialogId,
+                uMask = settings,
+                hIconTab = (uint)icon.Handle,
+                pszModuleName = PluginName
+            };
+            IntPtr _ptrNppTbData = Marshal.AllocHGlobal(Marshal.SizeOf(_nppTbData));
+            Marshal.StructureToPtr(_nppTbData, _ptrNppTbData, false);
+            return _ptrNppTbData;
+        }
+
+        private static void InitializeDockableDialogTabIcon(Bitmap bitmap)
+        {
+            using (Bitmap newBmp = new Bitmap(16, 16))
+            {
+                Graphics g = Graphics.FromImage(newBmp);
+                ColorMap[] colorMap = new ColorMap[1];
+                colorMap[0] = new ColorMap();
+                colorMap[0].OldColor = Color.Fuchsia;
+                colorMap[0].NewColor = Color.FromKnownColor(KnownColor.ButtonFace);
+                ImageAttributes attr = new ImageAttributes();
+                attr.SetRemapTable(colorMap);
+                g.DrawImage(bitmap, new Rectangle(0, 0, 16, 16), 0, 0, 16, 16, GraphicsUnit.Pixel, attr);
+                tbIcon = Icon.FromHandle(newBmp.GetHicon());
             }
         }
     }

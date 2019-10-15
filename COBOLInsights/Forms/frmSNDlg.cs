@@ -74,7 +74,12 @@ namespace Kbg.NppPluginNET
             {
                 foreach (Match match in matches)
                 {
-                    SNList.Add(new SourceNavigationItem { Name = match.Groups[2].Value == "SECTION" ? " " + match.Groups[0].Value : match.Groups[0].Value, LineNumber = LineFromPos(text, match.Index), CharNumber = match.Index });
+                    SNList.Add(new SourceNavigationItem
+                    {
+                        Name = match.Groups[2].Value == "SECTION" ? " " + match.Groups[0].Value : match.Groups[0].Value,
+                        LineNumber = LineFromPos(text, match.Index),
+                        CharNumber = match.Index
+                    });
                 }
             }
             PostDataToSNListBox(SNList);
@@ -99,5 +104,12 @@ namespace Kbg.NppPluginNET
             return lineNumber;
         }
 
+        private void frmSNDlg_VisibleChanged(object sender, EventArgs e)
+        {
+            if(this.Visible==true)
+            {
+                UpdateSNListBox();
+            }
+        }
     }
 }
