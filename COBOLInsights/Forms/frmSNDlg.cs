@@ -25,11 +25,6 @@ namespace Kbg.NppPluginNET
             synchronizationContext = SynchronizationContext.Current;
         }
 
-        //private void toolStripButton1_Click(object sender, EventArgs e)
-        //{
-        //    Main.UpdateSNList();
-        //}
-
         private void toolStripButton1_Click(object sender, EventArgs e)
         {
             UpdateSNListBox();
@@ -51,11 +46,6 @@ namespace Kbg.NppPluginNET
             Editor.ScrollRange(new Position(charNumber + 1000), new Position(charNumber - 1000));
             Editor.GrabFocus();
         }
-
-        //private void frmSNDlg_Shown(object sender, EventArgs e)
-        //{
-        //    Main.UpdateSNList();
-        //}
 
         private void frmSNDlg_Shown(object sender, EventArgs e)
         {
