@@ -2,7 +2,7 @@
 
 namespace Kbg.NppPluginNET
 {
-    partial class frmSNDlg
+    partial class FrmSNDlg
     {
         /// <summary>
         /// Required designer variable.

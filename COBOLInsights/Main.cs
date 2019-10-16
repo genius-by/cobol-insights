@@ -12,10 +12,16 @@ namespace Kbg.NppPluginNET
     class Main
     {
         internal const string PluginName = "COBOLInsights";
-        static string iniFilePath = null;
+        //static string iniFilePath = null;
         //static bool someSetting = false;
-        static frmSNDlg frmSNDlg = null;
-        static int idSNDlg = -1;
+        static FormCommandStruct SNDialogStruct = new FormCommandStruct()
+        {
+            Form = null,
+            FormCommandId = -1,
+            ToolbarButtonBmp = COBOLInsights.Properties.Resources.list_icon,
+            DockingTabIconBmp = COBOLInsights.Properties.Resources.list_icon,
+            DockingTabIcon = null
+        };
         static Bitmap tbBmp = COBOLInsights.Properties.Resources.list_icon;
         static Bitmap tbBmp_tbTab = COBOLInsights.Properties.Resources.list_icon;
         static Icon tbIcon = null;
@@ -25,9 +31,9 @@ namespace Kbg.NppPluginNET
         {
             // This method is invoked whenever something is happening in notepad++
             // use eg. as
-            if (notification.Header.Code == (uint)NppMsg.NPPN_BUFFERACTIVATED && frmSNDlg != null)
+            if (notification.Header.Code == (uint)NppMsg.NPPN_BUFFERACTIVATED && SNDialogStruct.Form != null)
             {
-                frmSNDlg.UpdateSNListBox();
+                ((FrmSNDlg)SNDialogStruct.Form).UpdateSNListBox();
             }
             // or
             //
@@ -41,28 +47,22 @@ namespace Kbg.NppPluginNET
 
         internal static void CommandMenuInit()
         {
-            StringBuilder sbIniFilePath = new StringBuilder(Win32.MAX_PATH);
-            Win32.SendMessage(PluginBase.nppData._nppHandle, (uint) NppMsg.NPPM_GETPLUGINSCONFIGDIR, Win32.MAX_PATH, sbIniFilePath);
-            iniFilePath = sbIniFilePath.ToString();
-            if (!Directory.Exists(iniFilePath)) Directory.CreateDirectory(iniFilePath);
-            iniFilePath = Path.Combine(iniFilePath, PluginName + ".ini");
+            //StringBuilder sbIniFilePath = new StringBuilder(Win32.MAX_PATH);
+            //Win32.SendMessage(PluginBase.nppData._nppHandle, (uint) NppMsg.NPPM_GETPLUGINSCONFIGDIR, Win32.MAX_PATH, sbIniFilePath);
+            //iniFilePath = sbIniFilePath.ToString();
+            //if (!Directory.Exists(iniFilePath)) Directory.CreateDirectory(iniFilePath);
+            //iniFilePath = Path.Combine(iniFilePath, PluginName + ".ini");
             //someSetting = (Win32.GetPrivateProfileInt("SomeSection", "SomeKey", 0, iniFilePath) != 0);
 
             PluginBase.SetCommand(0, "MyMenuCommand", MyMenuFunction, new ShortcutKey(false, false, false, Keys.None));
-            PluginBase.SetCommand(1, "Source Navigation", SourceNavigationDialog); idSNDlg = 1;
+            PluginBase.SetCommand(1, "Source Navigation Panel", SourceNavigationDialog); SNDialogStruct.FormCommandId = 1;
         }
 
         internal static void SetToolBarIcon()
         {
-            toolbarIcons tbIcons = new toolbarIcons
-            {
-                hToolbarBmp = tbBmp.GetHbitmap()
-            };
-            IntPtr pTbIcons = Marshal.AllocHGlobal(Marshal.SizeOf(tbIcons));
-            Marshal.StructureToPtr(tbIcons, pTbIcons, false);
-            Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_ADDTOOLBARICON, PluginBase._funcItems.Items[idSNDlg]._cmdID, pTbIcons);
-            Marshal.FreeHGlobal(pTbIcons);
+            AddNppToolbarIcon(SNDialogStruct);
         }
+
 
         internal static void PluginCleanUp()
         {
@@ -77,33 +77,54 @@ namespace Kbg.NppPluginNET
 
         internal static void SourceNavigationDialog()
         {
-            if (frmSNDlg == null)
+            if (SNDialogStruct.Form == null)
             {
-                frmSNDlg = new frmSNDlg();
-                InitializeDockableDialogTabIcon(tbBmp_tbTab);
-
-                IntPtr _ptrNppTbData = CreateNppToolbarDataPointer(frmSNDlg,
-                                                                   "Source Navigation",
-                                                                   idSNDlg,
-                                                                   NppTbMsg.DWS_DF_CONT_LEFT | NppTbMsg.DWS_ICONTAB | NppTbMsg.DWS_ICONBAR,
-                                                                   tbIcon);
-                RegisterNppDockableDialog(_ptrNppTbData);
-                SetToolbarCommandActivatedState(idSNDlg, true);
-                frmSNDlg.UpdateSNListBox();
+                StartNewDockedSourceNavigationPanel();
             }
             else
             {
-                if (!frmSNDlg.Visible)
-                {
-                    SetDockableDialogVisibility(frmSNDlg.Handle, true);
-                    SetToolbarCommandActivatedState(idSNDlg, true);
-                }
-                else
-                {
-                    SetDockableDialogVisibility(frmSNDlg.Handle, false);
-                    SetToolbarCommandActivatedState(idSNDlg, false);
-                }
+                ToggleSourceNavigationPanelVisibility();
             }
+        }
+
+        private static void ToggleSourceNavigationPanelVisibility()
+        {
+            if (!SNDialogStruct.Form.Visible)
+            {
+                SetDockableDialogVisibility(SNDialogStruct.Form.Handle, true);
+                SetToolbarCommandActivatedState(SNDialogStruct.FormCommandId, true);
+            }
+            else
+            {
+                SetDockableDialogVisibility(SNDialogStruct.Form.Handle, false);
+                SetToolbarCommandActivatedState(SNDialogStruct.FormCommandId, false);
+            }
+        }
+
+        private static void StartNewDockedSourceNavigationPanel()
+        {
+            SNDialogStruct.Form = new FrmSNDlg();
+            SNDialogStruct.DockingTabIcon = InitializeDockableDialogTabIcon(SNDialogStruct.DockingTabIconBmp);
+
+            IntPtr _ptrNppTbData = CreateNppToolbarDataPointer(SNDialogStruct.Form,
+                                                               "Source Navigation",
+                                                               SNDialogStruct.FormCommandId,
+                                                               NppTbMsg.DWS_DF_CONT_LEFT | NppTbMsg.DWS_ICONTAB | NppTbMsg.DWS_ICONBAR,
+                                                               tbIcon);
+            RegisterNppDockableDialog(_ptrNppTbData);
+            SetToolbarCommandActivatedState(SNDialogStruct.FormCommandId, true);
+            ((FrmSNDlg)SNDialogStruct.Form).UpdateSNListBox();
+        }
+
+        private static void AddNppToolbarIcon(FormCommandStruct form)
+        {
+            toolbarIcons tbIcons = new toolbarIcons
+            {
+                hToolbarBmp = form.ToolbarButtonBmp.GetHbitmap()
+            };
+            IntPtr pTbIcons = GetStructPointer(tbIcons);
+            Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_ADDTOOLBARICON, PluginBase._funcItems.Items[form.FormCommandId]._cmdID, pTbIcons);
+            Marshal.FreeHGlobal(pTbIcons);
         }
 
         private static void SetDockableDialogVisibility(IntPtr handle, bool visible)
@@ -132,25 +153,41 @@ namespace Kbg.NppPluginNET
                 hIconTab = (uint)icon.Handle,
                 pszModuleName = PluginName
             };
-            IntPtr _ptrNppTbData = Marshal.AllocHGlobal(Marshal.SizeOf(_nppTbData));
-            Marshal.StructureToPtr(_nppTbData, _ptrNppTbData, false);
-            return _ptrNppTbData;
+            return GetStructPointer(_nppTbData);
         }
 
-        private static void InitializeDockableDialogTabIcon(Bitmap bitmap)
+        private static IntPtr GetStructPointer(object structure)
+        {
+            IntPtr pointer = Marshal.AllocHGlobal(Marshal.SizeOf(structure));
+            Marshal.StructureToPtr(structure, pointer, false);
+            return pointer;
+        }
+
+        private static Icon InitializeDockableDialogTabIcon(Bitmap bitmap)
         {
             using (Bitmap newBmp = new Bitmap(16, 16))
             {
                 Graphics g = Graphics.FromImage(newBmp);
                 ColorMap[] colorMap = new ColorMap[1];
-                colorMap[0] = new ColorMap();
-                colorMap[0].OldColor = Color.Fuchsia;
-                colorMap[0].NewColor = Color.FromKnownColor(KnownColor.ButtonFace);
+                colorMap[0] = new ColorMap
+                {
+                    OldColor = Color.Fuchsia,
+                    NewColor = Color.FromKnownColor(KnownColor.ButtonFace)
+                };
                 ImageAttributes attr = new ImageAttributes();
                 attr.SetRemapTable(colorMap);
                 g.DrawImage(bitmap, new Rectangle(0, 0, 16, 16), 0, 0, 16, 16, GraphicsUnit.Pixel, attr);
-                tbIcon = Icon.FromHandle(newBmp.GetHicon());
+                return Icon.FromHandle(newBmp.GetHicon());
             }
         }
+    }
+
+    public struct FormCommandStruct
+    {
+        public int FormCommandId;
+        public Form Form;
+        public Bitmap ToolbarButtonBmp;
+        public Bitmap DockingTabIconBmp;
+        public Icon DockingTabIcon;
     }
 }

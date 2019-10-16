@@ -12,12 +12,13 @@ using System.Windows.Forms;
 
 namespace Kbg.NppPluginNET
 {
-    public partial class frmSNDlg : Form
+    public partial class FrmSNDlg : Form
     {
         private readonly SynchronizationContext synchronizationContext;
         private IScintillaGateway Editor;
         private List<SourceNavigationItem> SNList = new List<SourceNavigationItem>();
-        public frmSNDlg()
+
+        public FrmSNDlg()
         {
             InitializeComponent();
             SNListBox.DisplayMember = "Name";
@@ -35,6 +36,11 @@ namespace Kbg.NppPluginNET
         }
 
         private void SNListBox_DoubleClick(object sender, EventArgs e)
+        {
+            GotoSelectedSection();
+        }
+
+        private void GotoSelectedSection()
         {
             Editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
             SourceNavigationItem selectedItem = (SourceNavigationItem)SNListBox.SelectedItem;
