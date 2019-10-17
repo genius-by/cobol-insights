@@ -31,6 +31,9 @@ namespace Kbg.NppPluginNET
             DockingTabIcon = null
         };
 
+        static IScintillaGateway Editor1 = new ScintillaGateway(PluginBase.nppData._scintillaMainHandle);
+        static IScintillaGateway Editor2 = new ScintillaGateway(PluginBase.nppData._scintillaSecondHandle);
+
         public static void OnNotification(ScNotification notification)
         {
             // This method is invoked whenever something is happening in notepad++
@@ -99,8 +102,6 @@ namespace Kbg.NppPluginNET
 
         internal static void ShowMultipleVerticalLines()
         {
-            IScintillaGateway Editor1 = new ScintillaGateway(PluginBase.nppData._scintillaMainHandle);
-            IScintillaGateway Editor2 = new ScintillaGateway(PluginBase.nppData._scintillaSecondHandle);
             if (!ShowVerticalLines)
             {
                 Editor1.MultiEdgeClearAll();
@@ -126,8 +127,6 @@ namespace Kbg.NppPluginNET
         }
         private static void LoadMultipleVerticalLines()
         {
-            IScintillaGateway Editor1 = new ScintillaGateway(PluginBase.nppData._scintillaMainHandle);
-            IScintillaGateway Editor2 = new ScintillaGateway(PluginBase.nppData._scintillaSecondHandle);
             if (ShowVerticalLines)
             {
                 Editor1.MultiEdgeClearAll();
@@ -151,8 +150,6 @@ namespace Kbg.NppPluginNET
 
         private static void AddVerticalLine()
         {
-            IScintillaGateway Editor1 = new ScintillaGateway(PluginBase.nppData._scintillaMainHandle);
-            IScintillaGateway Editor2 = new ScintillaGateway(PluginBase.nppData._scintillaSecondHandle);
             FrmAddVerticalLine frmAddVerticalLine = new FrmAddVerticalLine();
             var res = frmAddVerticalLine.ShowDialog();
             if (res == DialogResult.OK && frmAddVerticalLine.Position > 0)
@@ -166,8 +163,6 @@ namespace Kbg.NppPluginNET
         private static void ClearAllVerticalLines()
         {
             VerticalLines.Clear();
-            IScintillaGateway Editor1 = new ScintillaGateway(PluginBase.nppData._scintillaMainHandle);
-            IScintillaGateway Editor2 = new ScintillaGateway(PluginBase.nppData._scintillaSecondHandle);
             Editor1.MultiEdgeClearAll();
             Editor2.MultiEdgeClearAll();
         }
@@ -206,7 +201,7 @@ namespace Kbg.NppPluginNET
             IntPtr _ptrNppTbData = CreateNppToolbarDataPointer(SNDialogStruct.Form,
                                                                "Source Navigation",
                                                                SNDialogStruct.FormCommandId,
-                                                               NppTbMsg.DWS_DF_CONT_LEFT | NppTbMsg.DWS_ICONTAB | NppTbMsg.DWS_ICONBAR,
+                                                               NppTbMsg.DWS_DF_CONT_RIGHT | NppTbMsg.DWS_ICONTAB | NppTbMsg.DWS_ICONBAR,
                                                                SNDialogStruct.DockingTabIcon);
             RegisterNppDockableDialog(_ptrNppTbData);
             SetToolbarCommandActivatedState(SNDialogStruct.FormCommandId, true);
