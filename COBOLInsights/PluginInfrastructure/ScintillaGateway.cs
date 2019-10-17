@@ -3071,6 +3071,18 @@ namespace Kbg.NppPluginNET.PluginInfrastructure
             IntPtr res = Win32.SendMessage(scintilla, SciMsg.SCI_SETEDGECOLOUR, edgeColour.Value, Unused);
         }
 
+        /// <summary>Add vertical edge in multi-edge mode. (Scintilla feature 2694)</summary>
+        public void MultiEdgeAddLine(int column, Colour edgeColour)
+        {
+            IntPtr res = Win32.SendMessage(scintilla, SciMsg.SCI_MULTIEDGEADDLINE, column, edgeColour.Value);
+        }
+
+        /// <summary>Clear all vertical edges in multi-edge mode. (Scintilla feature 2695)</summary>
+        public void MultiEdgeClearAll()
+        {
+            IntPtr res = Win32.SendMessage(scintilla, SciMsg.SCI_MULTIEDGECLEARALL, Unused, Unused);
+        }
+
         /// <summary>Sets the current caret position to be the search anchor. (Scintilla feature 2366)</summary>
         public void SearchAnchor()
         {

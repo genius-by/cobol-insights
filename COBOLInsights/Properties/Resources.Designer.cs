@@ -63,6 +63,26 @@ namespace COBOLInsights.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap add_vertical_line {
+            get {
+                object obj = ResourceManager.GetObject("add_vertical_line", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap clear_vertical_lines {
+            get {
+                object obj = ResourceManager.GetObject("clear_vertical_lines", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap list_icon {
             get {
                 object obj = ResourceManager.GetObject("list_icon", resourceCulture);
@@ -96,6 +116,16 @@ namespace COBOLInsights.Properties {
         internal static System.Drawing.Bitmap star_bmp {
             get {
                 object obj = ResourceManager.GetObject("star_bmp", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap toggle_vertical_lines {
+            get {
+                object obj = ResourceManager.GetObject("toggle_vertical_lines", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

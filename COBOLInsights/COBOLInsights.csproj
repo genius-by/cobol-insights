@@ -63,10 +63,18 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Forms\FrmAddVerticalLine.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FrmAddVerticalLine.Designer.cs">
+      <DependentUpon>FrmAddVerticalLine.cs</DependentUpon>
+    </Compile>
     <Compile Include="PluginInfrastructure\ClikeStringArray.cs" />
     <Compile Include="PluginInfrastructure\DllExport\DllExportAttribute.cs" />
     <Compile Include="Forms\frmSNDlg.cs">
@@ -99,6 +107,9 @@
     <Compile Include="SNClasses\SourceNavigationItem.cs" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Forms\FrmAddVerticalLine.resx">
+      <DependentUpon>FrmAddVerticalLine.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\frmSNDlg.resx">
       <DependentUpon>frmSNDlg.cs</DependentUpon>
     </EmbeddedResource>
@@ -116,6 +127,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\iconfinder_List_132709.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\toggle_vert_lines.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\toggle_vertical_lines.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\toggle_vertical_lines1.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\toggle_vertical_lines2.png" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildProjectDirectory)\PluginInfrastructure\DllExport\NppPlugin.DllExport.targets" />

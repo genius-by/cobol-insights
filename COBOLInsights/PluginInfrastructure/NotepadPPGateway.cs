@@ -47,10 +47,12 @@ namespace Kbg.NppPluginNET.PluginInfrastructure
 			return path.ToString();
 		}
 
-		public void SetCurrentLanguage(LangType language)
-		{
-			Win32.SendMessage(PluginBase.nppData._nppHandle, (uint) NppMsg.NPPM_SETCURRENTLANGTYPE, Unused, (int) language);
-		}
+        public void SetCurrentLanguage(LangType language)
+        {
+            Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_SETCURRENTLANGTYPE, Unused, (int)language);
+        }
+
+
 	}
 
 	/// <summary>
