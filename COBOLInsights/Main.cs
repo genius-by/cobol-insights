@@ -45,7 +45,7 @@ namespace Kbg.NppPluginNET
 
             if (notification.Header.Code == (uint)NppMsg.NPPN_READY)
             {
-                LoadMultipleVerticalLines();
+                LoadMultipleVerticalLines(ShowVerticalLines);
             }
             // or
             //
@@ -81,7 +81,9 @@ namespace Kbg.NppPluginNET
         }
 
 
-
+        /// <summary>
+        /// Method used by NPP to add plugin commands to toolbar and menu.
+        /// </summary>
         internal static void SetToolBarIcon()
         {
             AddNppToolbarIcon(ToggleVerticalLinesBmp, ToggleVerticalLinesCommandId);
@@ -91,7 +93,9 @@ namespace Kbg.NppPluginNET
             
         }
 
-
+        /// <summary>
+        /// Method used by NPP, when by closing to run any necessary code before plugin is unloaded (i.e. save settings).
+        /// </summary>
         internal static void PluginCleanUp()
         {
             Win32.WritePrivateProfileString("COBOLInsights", "ShowVerticalLines", ShowVerticalLines ? "1" : "0", iniFilePath);
@@ -99,35 +103,22 @@ namespace Kbg.NppPluginNET
         }
 
 
-
+        /// <summary>
+        /// Toggles show of coloured vertical lines and state of corresponding menu command.
+        /// </summary>
         internal static void ShowMultipleVerticalLines()
         {
-            if (!ShowVerticalLines)
-            {
-                Editor1.MultiEdgeClearAll();
-                Editor2.MultiEdgeClearAll();
-                Editor1.SetEdgeMode((int)SciMsg.EDGE_MULTILINE);
-                Editor2.SetEdgeMode((int)SciMsg.EDGE_MULTILINE);
-                foreach (var line in VerticalLines)
-                {
-                    Editor1.MultiEdgeAddLine(line.Position, new Colour(line.Color));
-                    Editor2.MultiEdgeAddLine(line.Position, new Colour(line.Color));
-                }
-                SetToolbarCommandActivatedState(0, true);
-                ShowVerticalLines = true;
-            }
-            else
-            {
-                Editor1.MultiEdgeClearAll();
-                Editor2.MultiEdgeClearAll();
-                SetToolbarCommandActivatedState(0, false);
-                ShowVerticalLines = false;
-            }
-            
+            LoadMultipleVerticalLines(!ShowVerticalLines);
+            ShowVerticalLines = !ShowVerticalLines;
         }
-        private static void LoadMultipleVerticalLines()
+
+        /// <summary>
+        /// Draws predefined coloured vertical lines.
+        /// </summary>
+        /// <param name="show">When set to false clears all currently drawed lines.</param>
+        private static void LoadMultipleVerticalLines(bool show)
         {
-            if (ShowVerticalLines)
+            if (show)
             {
                 Editor1.MultiEdgeClearAll();
                 Editor2.MultiEdgeClearAll();
@@ -148,6 +139,9 @@ namespace Kbg.NppPluginNET
             }
         }
 
+        /// <summary>
+        /// Create and show form for adding a single vertical line.
+        /// </summary>
         private static void AddVerticalLine()
         {
             FrmAddVerticalLine frmAddVerticalLine = new FrmAddVerticalLine();
@@ -160,6 +154,10 @@ namespace Kbg.NppPluginNET
                 Editor2.MultiEdgeAddLine(line.Position, new Colour(line.Color));
             }
         }
+
+        /// <summary>
+        /// Removes all vertical lines from screen and clears their settings.
+        /// </summary>
         private static void ClearAllVerticalLines()
         {
             VerticalLines.Clear();
@@ -167,6 +165,9 @@ namespace Kbg.NppPluginNET
             Editor2.MultiEdgeClearAll();
         }
 
+        /// <summary>
+        /// Controls show of Source Navigation dialog.
+        /// </summary>
         internal static void SourceNavigationDialog()
         {
             if (SNDialogStruct.Form == null)
@@ -179,6 +180,9 @@ namespace Kbg.NppPluginNET
             }
         }
 
+        /// <summary>
+        /// Toggles show of Source Navigation dialog.
+        /// </summary>
         private static void ToggleSourceNavigationPanelVisibility()
         {
             if (!SNDialogStruct.Form.Visible)
@@ -193,6 +197,9 @@ namespace Kbg.NppPluginNET
             }
         }
 
+        /// <summary>
+        /// Create and show dockable Source Navigation dialog.
+        /// </summary>
         private static void StartNewDockedSourceNavigationPanel()
         {
             SNDialogStruct.Form = new FrmSNDlg();
@@ -208,6 +215,10 @@ namespace Kbg.NppPluginNET
             ((FrmSNDlg)SNDialogStruct.Form).UpdateSNListBox();
         }
 
+        /// <summary>
+        /// Send message to Npp to add dockable-form-starting command to toolbar.
+        /// </summary>
+        /// <param name="form">Contains parameters for menu command starting dockable form.</param>
         private static void AddNppToolbarIcon(DockableFormCommandStruct form)
         {
             toolbarIcons tbIcons = new toolbarIcons
@@ -219,6 +230,11 @@ namespace Kbg.NppPluginNET
             Marshal.FreeHGlobal(pTbIcons);
         }
 
+        /// <summary>
+        /// Send message to Npp to add command to toolbar.
+        /// </summary>
+        /// <param name="toolbarButtonBmp">Bitmap for toolbar icon.</param>
+        /// <param name="commandId">Index of plugin command.</param>
         private static void AddNppToolbarIcon(Bitmap toolbarButtonBmp, int commandId)
         {
             toolbarIcons tbIcons = new toolbarIcons
@@ -230,21 +246,42 @@ namespace Kbg.NppPluginNET
             Marshal.FreeHGlobal(pTbIcons);
         }
 
+        /// <summary>
+        /// Send message to Npp to set Visible property of control.
+        /// </summary>
+        /// <param name="handle">Handle of control.</param>
+        /// <param name="visible">Visibility value.</param>
         private static void SetDockableDialogVisibility(IntPtr handle, bool visible)
         {
             Win32.SendMessage(PluginBase.nppData._nppHandle, visible ? (uint)NppMsg.NPPM_DMMSHOW : (uint)NppMsg.NPPM_DMMHIDE, 0, handle);
         }
 
+        /// <summary>
+        /// Send message to Npp to set checked/unchecked state of menu and toolbar command.
+        /// </summary>
+        /// <param name="dialogId">Index od plugin command to control dialog.</param>
+        /// <param name="pressed">Checked state value.</param>
         private static void SetToolbarCommandActivatedState(int dialogId, bool pressed)
         {
             Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_SETMENUITEMCHECK, PluginBase._funcItems.Items[dialogId]._cmdID, pressed ? 1 : 0);
         }
 
+        /// <summary>
+        /// Send message to Npp to register dockable dialog.
+        /// </summary>
+        /// <param name="_ptrNppTbData">Pointer to structure with dialog parameters.</param>
         private static void RegisterNppDockableDialog(IntPtr _ptrNppTbData)
         {
             Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_DMMREGASDCKDLG, 0, _ptrNppTbData);
         }
 
+        /// <summary>
+        /// Creates structure with dialog parameters and returns pointer on that structure.
+        /// </summary>
+        /// <param name="form">Form to describe</param>
+        /// <param name="shownName">Name to show at form caption</param>
+        /// <param name="dialogId">Plugin command index</param>
+        /// <param name="settings">Bit-mask with window settings</param>
         private static IntPtr CreateNppToolbarDataPointer(Form form, string shownName, int dialogId, NppTbMsg settings, Icon icon)
         {
             NppTbData _nppTbData = new NppTbData
@@ -259,6 +296,10 @@ namespace Kbg.NppPluginNET
             return GetStructPointer(_nppTbData);
         }
 
+        /// <summary>
+        /// Returns pointer on structure.
+        /// </summary>
+        /// <param name="structure">Structure, to get pointer to.</param>
         private static IntPtr GetStructPointer(object structure)
         {
             IntPtr pointer = Marshal.AllocHGlobal(Marshal.SizeOf(structure));
@@ -266,6 +307,10 @@ namespace Kbg.NppPluginNET
             return pointer;
         }
 
+        /// <summary>
+        /// Sets up and returns icon object based on passed bitmap.
+        /// </summary>
+        /// <param name="bitmap">Bitmap object fot icon.</param>
         private static Icon InitializeDockableDialogTabIcon(Bitmap bitmap)
         {
             using (Bitmap newBmp = new Bitmap(16, 16))
@@ -284,6 +329,10 @@ namespace Kbg.NppPluginNET
             }
         }
 
+        /// <summary>
+        /// Parse string-setting received from plugin INI-file into list of VerticalLine objects.
+        /// </summary>
+        /// <param name="param">String with space-splitted values "position|color".</param>
         private static List<VerticalLine> ParseIniVerticalLinesParam(string param)
         {
             List<VerticalLine> result = new List<VerticalLine>();
@@ -299,6 +348,11 @@ namespace Kbg.NppPluginNET
             }
             return result;
         }
+
+        /// <summary>
+        /// Convert list of VerticalLine objects into string (space-splitted values "position|color").
+        /// </summary>
+        /// <param name="verticalLines">List of VerticalLine objects.</param>
         private static string GetVerticalLinesParamString(List<VerticalLine> verticalLines)
         {
             string res = "";
@@ -310,6 +364,9 @@ namespace Kbg.NppPluginNET
         }
     }
 
+    /// <summary>
+    /// Represents settings list, required for creating dockable dialog in Npp.
+    /// </summary>
     public struct DockableFormCommandStruct
     {
         public int FormCommandId;
@@ -319,6 +376,9 @@ namespace Kbg.NppPluginNET
         public Icon DockingTabIcon;
     }
 
+    /// <summary>
+    /// Describes minimal set of data for a vertical line, required for its drawing (position and color).
+    /// </summary>
     public struct VerticalLine
     {
         public int Position;
