@@ -3099,7 +3099,7 @@ namespace Kbg.NppPluginNET.PluginInfrastructure
             fixed (byte* textPtr = Encoding.UTF8.GetBytes(text))
             {
                 IntPtr res = Win32.SendMessage(scintilla, SciMsg.SCI_SEARCHNEXT, flags, (IntPtr) textPtr);
-                return (int) res;
+                return (int)res;
             }
         }
 

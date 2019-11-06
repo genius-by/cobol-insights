@@ -104,6 +104,8 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="PluginInfrastructure\UnmanagedExports.cs" />
+    <Compile Include="SNClasses\ISnippet.cs" />
+    <Compile Include="SNClasses\SimpleSnippet.cs" />
     <Compile Include="SNClasses\SourceNavigationItem.cs" />
   </ItemGroup>
   <ItemGroup>

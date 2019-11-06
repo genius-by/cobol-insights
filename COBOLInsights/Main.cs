@@ -16,11 +16,11 @@ namespace Kbg.NppPluginNET
         static string iniFilePath = null;
         static bool ShowVerticalLines = false;
         static List<VerticalLine> VerticalLines = new List<VerticalLine>();
-        static Bitmap ToggleVerticalLinesBmp = COBOLInsights.Properties.Resources.toggle_vertical_lines;
-        static int ToggleVerticalLinesCommandId =-1;
-        static Bitmap AddVerticalLineBmp = COBOLInsights.Properties.Resources.add_vertical_line;
+        static readonly Bitmap ToggleVerticalLinesBmp = COBOLInsights.Properties.Resources.toggle_vertical_lines;
+        static int ToggleVerticalLinesCommandId = -1;
+        static readonly Bitmap AddVerticalLineBmp = COBOLInsights.Properties.Resources.add_vertical_line;
         static int AddVerticalLineCommandId = -1;
-        static Bitmap ClearVerticalLinesBmp = COBOLInsights.Properties.Resources.clear_vertical_lines;
+        static readonly Bitmap ClearVerticalLinesBmp = COBOLInsights.Properties.Resources.clear_vertical_lines;
         static int ClearVerticalLinesCommandId = -1;
         static DockableFormCommandStruct SNDialogStruct = new DockableFormCommandStruct()
         {
@@ -31,8 +31,8 @@ namespace Kbg.NppPluginNET
             DockingTabIcon = null
         };
 
-        static IScintillaGateway Editor1 = new ScintillaGateway(PluginBase.nppData._scintillaMainHandle);
-        static IScintillaGateway Editor2 = new ScintillaGateway(PluginBase.nppData._scintillaSecondHandle);
+        static readonly IScintillaGateway Editor1 = new ScintillaGateway(PluginBase.nppData._scintillaMainHandle);
+        static readonly IScintillaGateway Editor2 = new ScintillaGateway(PluginBase.nppData._scintillaSecondHandle);
 
         public static void OnNotification(ScNotification notification)
         {
