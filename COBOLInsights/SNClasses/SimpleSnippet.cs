@@ -11,14 +11,29 @@ namespace COBOLInsights.SNClasses
     {
         private string SnippetBody;
 
-        public SimpleSnippet(string snippet)
+        public string SnippetMenuCommandName;
+        private string Placeholder = "{*}";
+
+        public SimpleSnippet(string name, string snippet)
         {
             SnippetBody = snippet;
+            SnippetMenuCommandName = name;
         }
-        public void InsertSnippet(IScintillaGateway scintilla)
+        public void InsertSnippet()
         {
-            scintilla.AddText(SnippetBody.Length, SnippetBody);
-            throw new NotImplementedException();
+            var editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
+            editor.AddText(SnippetBody.Length, SnippetBody);
+
+            using (TextToFind textToFind = new TextToFind(editor.GetCurrentPos().Value - SnippetBody.Length, editor.GetCurrentPos().Value, Placeholder))
+            {
+                Position placeholderPosition = editor.FindText(0, textToFind);
+                editor.SetSelection(placeholderPosition.Value + Placeholder.Length, placeholderPosition.Value);
+            }
+        }
+
+        public string GetCommandName()
+        {
+            return SnippetMenuCommandName;
         }
     }
 }

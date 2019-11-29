@@ -7,21 +7,29 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 using Kbg.NppPluginNET.PluginInfrastructure;
+using COBOLInsights.SNClasses;
 
 namespace Kbg.NppPluginNET
 {
     class Main
     {
         internal const string PluginName = "COBOLInsights";
+        static int commandIndexCounter = 0;
         static string iniFilePath = null;
         static bool ShowVerticalLines = false;
+        static bool CobolLikeWords = false;
         static List<VerticalLine> VerticalLines = new List<VerticalLine>();
+        static readonly Bitmap CobolWordsCharsBmp = COBOLInsights.Properties.Resources.cobol_words_chars;
         static readonly Bitmap ToggleVerticalLinesBmp = COBOLInsights.Properties.Resources.toggle_vertical_lines;
         static int ToggleVerticalLinesCommandId = -1;
         static readonly Bitmap AddVerticalLineBmp = COBOLInsights.Properties.Resources.add_vertical_line;
         static int AddVerticalLineCommandId = -1;
         static readonly Bitmap ClearVerticalLinesBmp = COBOLInsights.Properties.Resources.clear_vertical_lines;
         static int ClearVerticalLinesCommandId = -1;
+        static int ToggleCobolWordsCommandId = -1;
+        static int GotoSectionOrPerformCommandId = -1;
+        static string sectionName;
+        static int CurrentSearchOffset = 0;
         static DockableFormCommandStruct SNDialogStruct = new DockableFormCommandStruct()
         {
             Form = null,
@@ -34,13 +42,19 @@ namespace Kbg.NppPluginNET
         static readonly IScintillaGateway Editor1 = new ScintillaGateway(PluginBase.nppData._scintillaMainHandle);
         static readonly IScintillaGateway Editor2 = new ScintillaGateway(PluginBase.nppData._scintillaSecondHandle);
 
+        static List<ISnippet> Snippets = new List<ISnippet>();
+
         public static void OnNotification(ScNotification notification)
         {
             // This method is invoked whenever something is happening in notepad++
             // use eg. as
-            if (notification.Header.Code == (uint)NppMsg.NPPN_BUFFERACTIVATED && SNDialogStruct.Form != null)
+            if (notification.Header.Code == (uint)NppMsg.NPPN_BUFFERACTIVATED)
             {
-                ((FrmSNDlg)SNDialogStruct.Form).UpdateSNListBox();
+                if (SNDialogStruct.Form != null)
+                {
+                    ((FrmSNDlg)SNDialogStruct.Form).UpdateSNListBox();
+                }
+                SetCobolLikeWords(CobolLikeWords);
             }
 
             if (notification.Header.Code == (uint)NppMsg.NPPN_READY)
@@ -59,25 +73,206 @@ namespace Kbg.NppPluginNET
 
         internal static void CommandMenuInit()
         {
-            StringBuilder sbIniFilePath = new StringBuilder(Win32.MAX_PATH);
-            Win32.SendMessage(PluginBase.nppData._nppHandle, (uint) NppMsg.NPPM_GETPLUGINSCONFIGDIR, Win32.MAX_PATH, sbIniFilePath);
-            iniFilePath = sbIniFilePath.ToString();
-            if (!Directory.Exists(iniFilePath)) Directory.CreateDirectory(iniFilePath);
-            iniFilePath = Path.Combine(iniFilePath, PluginName + ".ini");
-            ShowVerticalLines = (Win32.GetPrivateProfileInt("COBOLInsights", "ShowVerticalLines", 0, iniFilePath) != 0);
+            InitPluginIniParameters();
+
+            PluginBase.SetCommand(commandIndexCounter, "Show vertical lines", ShowMultipleVerticalLines, new ShortcutKey(false, false, false, Keys.None), ShowVerticalLines);
+            ToggleVerticalLinesCommandId = commandIndexCounter++;
+            PluginBase.SetCommand(commandIndexCounter, "Add vertical line...", AddVerticalLine, new ShortcutKey(false, false, false, Keys.None));
+            AddVerticalLineCommandId = commandIndexCounter++;
+            PluginBase.SetCommand(commandIndexCounter, "Clear all vertical lines", ClearAllVerticalLines, new ShortcutKey(false, false, false, Keys.None));
+            ClearVerticalLinesCommandId = commandIndexCounter++;
+
+            PluginBase.SetCommand(commandIndexCounter++, "---", null);
+            PluginBase.SetCommand(commandIndexCounter, "Source Navigation Panel", SourceNavigationDialog);
+            SNDialogStruct.FormCommandId = commandIndexCounter++;
+            PluginBase.SetCommand(commandIndexCounter, "Go to SECTION/PERFORM", GotoSectionOrPerform, new ShortcutKey(false, false, false, Keys.F9));
+            GotoSectionOrPerformCommandId = commandIndexCounter++;
+
+            PluginBase.SetCommand(commandIndexCounter++, "---", null);
+            PluginBase.SetCommand(commandIndexCounter, "Toggle COBOL-like words", ToggleCobolLikeWords, new ShortcutKey(false, false, false, Keys.None));
+            ToggleCobolWordsCommandId = commandIndexCounter++;
+
+            PluginBase.SetCommand(commandIndexCounter++, "---", null);
+            PopulateMenuSnippetsCommands();
+        }
+
+        private static void ToggleCobolLikeWords()
+        {
+            SetCobolLikeWords(!CobolLikeWords);
+        }
+
+        private static void SetCobolLikeWords(bool activate)
+        {
+            if (activate)
+            {
+                Editor1.SetWordChars("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-_");
+                Editor2.SetWordChars("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-_");
+                CobolLikeWords = true;
+                SetToolbarCommandActivatedState(ToggleCobolWordsCommandId, true);
+            }
+            else
+            {
+                Editor1.SetCharsDefault();
+                Editor2.SetCharsDefault();
+                CobolLikeWords = false;
+                SetToolbarCommandActivatedState(ToggleCobolWordsCommandId, false);
+            }
+            
+        }
+
+        private static void GotoSectionOrPerform()
+        {
+            if (SNDialogStruct.Form == null)
+            {
+                SourceNavigationDialog();
+            }
+            var editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
+            if (!editor.GetWordChars().Contains("-"))
+            {
+                SetCobolLikeWords(true);
+            }
+            editor.SetSelection(editor.WordEndPosition(editor.GetCurrentPos(), true), editor.WordStartPosition(editor.GetCurrentPos(), true));
+            // If new search
+            if (sectionName != editor.GetSelText())
+            {
+                sectionName = editor.GetSelText();
+                int sectionImplementationLine = GetSectionImplementationLine(sectionName);
+                if (sectionImplementationLine >= 0)
+                {
+                    if (editor.GetCurrentLineNumber() == sectionImplementationLine)
+                    {
+                        if (!SearchNextSectionOrPerform(sectionName, editor.GetCurrentPos().Value))
+                        {
+                            SearchNextSectionOrPerform(sectionName, 0);
+                        }
+                            
+                    }
+                    else
+                    {
+                        ScrollToLine(sectionImplementationLine);
+                        CurrentSearchOffset = sectionImplementationLine;
+                    }
+                }
+                else
+                {
+                    sectionName = "";
+                }
+            }
+            //If continuing search
+            else
+            {
+                if (!SearchNextSectionOrPerform(sectionName, CurrentSearchOffset))
+                {
+                    SearchNextSectionOrPerform(sectionName, 0);
+                }
+            }
+        }
+
+        private static bool SearchNextSectionOrPerform(string sectionName, int offset)
+        {
+            var editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
+            using (TextToFind textToFind = new TextToFind(offset, editor.GetTextLength() - 1, sectionName))
+            {
+                Position sectionPosition = editor.FindText(0, textToFind);
+                if (sectionPosition.Value >= 0)
+                {
+                    if (editor.GetLine(editor.LineFromPosition(sectionPosition)).StartsWith("*"))
+                    {
+                        CurrentSearchOffset = sectionPosition.Value + sectionName.Length;
+                        return SearchNextSectionOrPerform(sectionName, CurrentSearchOffset);
+                    }
+                    ScrollToLine(editor.LineFromPosition(sectionPosition));
+                    CurrentSearchOffset = sectionPosition.Value + sectionName.Length;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+                
+            }
+        }
+
+        private static void ScrollToLine(int sectionImplementationLine)
+        {
+            var editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
+            int linesOnScreen = editor.LinesOnScreen();
+            editor.SetFirstVisibleLine(sectionImplementationLine - linesOnScreen / 2 + 1 < 0 ? 0 : sectionImplementationLine - linesOnScreen / 2 + 1);
+        }
+
+        private static int GetSectionImplementationLine(string name)
+        {
+            if (SNDialogStruct.Form != null)
+            {
+                foreach (var item in ((FrmSNDlg)SNDialogStruct.Form).GetStoredSectionsList())
+                {
+                    if (item.Name.Trim().StartsWith(name))
+                    {
+                        return item.LineNumber;
+                    }
+                }
+            }
+            return -1;
+        }
+
+        private static void InitPluginIniParameters()
+        {
+            iniFilePath = GetPluginIniFilePath();
+
+            ShowVerticalLines = Win32.GetPrivateProfileInt("COBOLInsights", "ShowVerticalLines", 0, iniFilePath) != 0;
+
+ //           CobolLikeWords = Win32.GetPrivateProfileInt("COBOLInsights", "CobolLikeWords", 0, iniFilePath) != 0;
+
             StringBuilder sbVerticalLinesParam = new StringBuilder(150);
             Win32.GetPrivateProfileString("COBOLInsights", "VerticalLines", "0|0", sbVerticalLinesParam, 150, iniFilePath);
             VerticalLines = ParseIniVerticalLinesParam(sbVerticalLinesParam.ToString());
 
-            PluginBase.SetCommand(0, "Show vertical lines", ShowMultipleVerticalLines, new ShortcutKey(false, false, false, Keys.None), ShowVerticalLines);
-            ToggleVerticalLinesCommandId = 0;
+            InitSnippetList();
+        }
 
-            PluginBase.SetCommand(1, "Add vertical line...", AddVerticalLine, new ShortcutKey(false, false, false, Keys.None));
-            AddVerticalLineCommandId = 1;
-            PluginBase.SetCommand(2, "Clear all vertical lines", ClearAllVerticalLines, new ShortcutKey(false, false, false, Keys.None));
-            ClearVerticalLinesCommandId = 2;
-            PluginBase.SetCommand(3, "---", null);
-            PluginBase.SetCommand(4, "Source Navigation Panel", SourceNavigationDialog); SNDialogStruct.FormCommandId = 4;
+        private static string GetPluginIniFilePath()
+        {
+            StringBuilder sbIniFilePath = new StringBuilder(Win32.MAX_PATH);
+            Win32.SendMessage(PluginBase.nppData._nppHandle, (uint)NppMsg.NPPM_GETPLUGINSCONFIGDIR, Win32.MAX_PATH, sbIniFilePath);
+            iniFilePath = sbIniFilePath.ToString();
+            if (!Directory.Exists(iniFilePath)) Directory.CreateDirectory(iniFilePath);
+            return Path.Combine(iniFilePath, PluginName + ".ini");
+        }
+
+        private static void InitSnippetList()
+        {
+            Snippets.Add(new SimpleSnippet(name: "New section",
+                                           snippet: "*-------------------------------------------------------------------------------\n" +
+                                                    " {*} SECTION.\n" +
+                                                    "*-------------------------------------------------------------------------------\n" +
+                                                    "*/ Description\n" +
+                                                    "*-------------------------------------------------------------------------------\n" +
+                                                    "\n    ." +
+                                                    "\n\n" +
+                                                    " {*} - EXIT.\n" +
+                                                    "    EXIT."));
+            Snippets.Add(new LineSurroundingSnippet(name: "Marke #999#",
+                                                    snippetBodyBefore: "*#999# Anfang:",
+                                                    snippetBodyAfter: "*#999# Ende.",
+                                                    keepIndent: false));
+            Snippets.Add(new LineSurroundingSnippet(name: "IF THEN * END-IF",
+                                                    snippetBodyBefore: "IF {*}\nTHEN",
+                                                    snippetBodyAfter: "END-IF",
+                                                    keepIndent: true,
+                                                    indentSelection: 3));
+            Snippets.Add(new LineSurroundingSnippet(name: "IF THEN * ELSE * END-IF",
+                                                    snippetBodyBefore: "IF {*}\nTHEN",
+                                                    snippetBodyAfter: "ELSE\n   \nEND-IF",
+                                                    keepIndent: true,
+                                                    indentSelection: 3));
+        }
+
+        private static void PopulateMenuSnippetsCommands()
+        {
+            foreach (ISnippet snippet in Snippets)
+            {
+                PluginBase.SetCommand(commandIndexCounter++, snippet.GetCommandName(), snippet.InsertSnippet, new ShortcutKey(false, false, false, Keys.None));
+            }
         }
 
 
@@ -90,7 +285,7 @@ namespace Kbg.NppPluginNET
             AddNppToolbarIcon(AddVerticalLineBmp, AddVerticalLineCommandId);
             AddNppToolbarIcon(ClearVerticalLinesBmp, ClearVerticalLinesCommandId);
             AddNppToolbarIcon(SNDialogStruct);
-            
+            AddNppToolbarIcon(CobolWordsCharsBmp, ToggleCobolWordsCommandId);
         }
 
         /// <summary>
@@ -99,6 +294,9 @@ namespace Kbg.NppPluginNET
         internal static void PluginCleanUp()
         {
             Win32.WritePrivateProfileString("COBOLInsights", "ShowVerticalLines", ShowVerticalLines ? "1" : "0", iniFilePath);
+            Editor1.SetCharsDefault();
+            Editor2.SetCharsDefault();
+//            Win32.WritePrivateProfileString("COBOLInsights", "CobolLikeWords", CobolLikeWords ? "1" : "0", iniFilePath);
             Win32.WritePrivateProfileString("COBOLInsights", "VerticalLines", GetVerticalLinesParamString(VerticalLines), iniFilePath);
         }
 
@@ -129,13 +327,13 @@ namespace Kbg.NppPluginNET
                     Editor1.MultiEdgeAddLine(line.Position, new Colour(line.Color));
                     Editor2.MultiEdgeAddLine(line.Position, new Colour(line.Color));
                 }
-                SetToolbarCommandActivatedState(0, true);
+                SetToolbarCommandActivatedState(ToggleVerticalLinesCommandId, true);
             }
             else
             {
                 Editor1.MultiEdgeClearAll();
                 Editor2.MultiEdgeClearAll();
-                SetToolbarCommandActivatedState(0, false);
+                SetToolbarCommandActivatedState(ToggleVerticalLinesCommandId, false);
             }
         }
 
@@ -259,7 +457,7 @@ namespace Kbg.NppPluginNET
         /// <summary>
         /// Send message to Npp to set checked/unchecked state of menu and toolbar command.
         /// </summary>
-        /// <param name="dialogId">Index od plugin command to control dialog.</param>
+        /// <param name="dialogId">Index of plugin command to control button.</param>
         /// <param name="pressed">Checked state value.</param>
         private static void SetToolbarCommandActivatedState(int dialogId, bool pressed)
         {

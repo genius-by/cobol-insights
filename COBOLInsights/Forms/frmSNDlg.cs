@@ -16,7 +16,6 @@ namespace Kbg.NppPluginNET
     {
         private readonly SynchronizationContext synchronizationContext;
         private IScintillaGateway Editor;
-        private List<SourceNavigationItem> SNList = new List<SourceNavigationItem>();
 
         public FrmSNDlg()
         {
@@ -40,14 +39,13 @@ namespace Kbg.NppPluginNET
             Editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
             SourceNavigationItem selectedItem = (SourceNavigationItem)SNListBox.SelectedItem;
             int line = selectedItem.LineNumber;
-            int charNumber = selectedItem.CharNumber;
-            Editor.EnsureVisible(line - 1);
-            Editor.GotoLine(line - 1);
-            Editor.ScrollRange(new Position(charNumber + 1000), new Position(charNumber - 1000));
+            int linesOnScreen = Editor.LinesOnScreen();
+            Editor.GotoLine(line);
+            Editor.SetFirstVisibleLine(line - linesOnScreen / 2 + 1 < 0 ? 0 : line - linesOnScreen / 2 + 1);
             Editor.GrabFocus();
         }
 
-        private void frmSNDlg_Shown(object sender, EventArgs e)
+        private void FrmSNDlg_Shown(object sender, EventArgs e)
         {
             UpdateSNListBox();
         }
@@ -62,19 +60,24 @@ namespace Kbg.NppPluginNET
         private void UpdateSNList()
         {
             Editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
+            List<SourceNavigationItem> SNList = new List<SourceNavigationItem>();
             SNList.Clear();
+            SNList.Add(new SourceNavigationItem
+            {
+                Name = "<TOP>",
+                LineNumber = 0
+            });
             string text = Editor.GetText(Editor.GetTextLength());
-            string search = @"[\s]([\w|-]+)[\s]+(SECTION|DIVISION)[\s]*\.[\s]*";
-            MatchCollection matches = Regex.Matches(text, search);
+            string search = @"^[\s]*([\w|-]+)[\s]+(SECTION|DIVISION)[\s]*\.[\s]*$";
+            MatchCollection matches = Regex.Matches(text, search, RegexOptions.Multiline);
             if (matches.Count > 0)
             {
                 foreach (Match match in matches)
                 {
                     SNList.Add(new SourceNavigationItem
                     {
-                        Name = match.Groups[2].Value == "SECTION" ? " " + match.Groups[0].Value : match.Groups[0].Value,
-                        LineNumber = LineFromPos(text, match.Index),
-                        CharNumber = match.Index
+                        Name = (match.Groups[2].Value == "SECTION" ? " " : "") + match.Groups[1].Value + " " + match.Groups[2].Value,
+                        LineNumber = Editor.LineFromPosition(new Position(match.Index))
                     });
                 }
             }
@@ -90,22 +93,60 @@ namespace Kbg.NppPluginNET
             }), snlist);
         }
 
-        private int LineFromPos(string input, int indexPosition)
-        {
-            int lineNumber = 1;
-            for (int i = 0; i < indexPosition; i++)
-            {
-                if (input[i] == '\n') lineNumber++;
-            }
-            return lineNumber;
-        }
-
         private void frmSNDlg_VisibleChanged(object sender, EventArgs e)
         {
             if(this.Visible==true)
             {
                 UpdateSNListBox();
             }
+        }
+
+        private void toolStripToTop_Click(object sender, EventArgs e)
+        {
+            SNListBox.TopIndex = 0;
+            SNListBox.SelectedIndex = 0;
+        }
+
+        private void FindSectionInProcedureDivision(string itemName)
+        {
+            int index = 0;
+            if (itemName != null)
+            {
+                index = SNListBox.FindString(itemName, SNListBox.FindString("procedure"));
+            }
+            SNListBox.TopIndex = index;
+            SNListBox.SelectedIndex = index;
+        }
+
+        private void toolStripESections_Click(object sender, EventArgs e)
+        {
+            FindSectionInProcedureDivision(" e");
+        }
+
+        private void toolStripRSections_Click(object sender, EventArgs e)
+        {
+            FindSectionInProcedureDivision(" r");
+        }
+
+        private void toolStripUSections_Click(object sender, EventArgs e)
+        {
+            FindSectionInProcedureDivision(" u");
+        }
+
+        private void toolStripToBottom_Click(object sender, EventArgs e)
+        {
+            SNListBox.TopIndex = SNListBox.Items.Count - 1;
+            SNListBox.SelectedIndex = SNListBox.Items.Count - 1;
+        }
+
+        public List<SourceNavigationItem> GetStoredSectionsList()
+        {
+            List<SourceNavigationItem> result = new List<SourceNavigationItem>();
+            foreach (SourceNavigationItem item in SNListBox.Items)
+            {
+                result.Add(item);
+            }
+            return result;
         }
     }
 }

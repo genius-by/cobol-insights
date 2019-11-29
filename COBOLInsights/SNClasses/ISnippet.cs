@@ -9,6 +9,7 @@ namespace COBOLInsights.SNClasses
 {
     interface ISnippet
     {
-        void InsertSnippet(IScintillaGateway scintilla);
+        void InsertSnippet();
+        string GetCommandName();
     }
 }
