@@ -27,7 +27,6 @@ namespace Kbg.NppPluginNET
         static readonly Bitmap ClearVerticalLinesBmp = COBOLInsights.Properties.Resources.clear_vertical_lines;
         static int ClearVerticalLinesCommandId = -1;
         static int ToggleCobolWordsCommandId = -1;
-        static int GotoSectionOrPerformCommandId = -1;
         static string sectionName;
         static int CurrentSearchOffset = 0;
         static DockableFormCommandStruct SNDialogStruct = new DockableFormCommandStruct()
@@ -42,7 +41,7 @@ namespace Kbg.NppPluginNET
         static readonly IScintillaGateway Editor1 = new ScintillaGateway(PluginBase.nppData._scintillaMainHandle);
         static readonly IScintillaGateway Editor2 = new ScintillaGateway(PluginBase.nppData._scintillaSecondHandle);
 
-        static List<ISnippet> Snippets = new List<ISnippet>();
+        static readonly List<ISnippet> Snippets = new List<ISnippet>();
 
         public static void OnNotification(ScNotification notification)
         {
@@ -85,8 +84,7 @@ namespace Kbg.NppPluginNET
             PluginBase.SetCommand(commandIndexCounter++, "---", null);
             PluginBase.SetCommand(commandIndexCounter, "Source Navigation Panel", SourceNavigationDialog);
             SNDialogStruct.FormCommandId = commandIndexCounter++;
-            PluginBase.SetCommand(commandIndexCounter, "Go to SECTION/PERFORM", GotoSectionOrPerform, new ShortcutKey(false, false, false, Keys.F9));
-            GotoSectionOrPerformCommandId = commandIndexCounter++;
+            PluginBase.SetCommand(commandIndexCounter++, "Go to SECTION/PERFORM", GotoSectionOrPerform, new ShortcutKey(false, false, false, Keys.F9));
 
             PluginBase.SetCommand(commandIndexCounter++, "---", null);
             PluginBase.SetCommand(commandIndexCounter, "Toggle COBOL-like words", ToggleCobolLikeWords, new ShortcutKey(false, false, false, Keys.None));
@@ -132,6 +130,11 @@ namespace Kbg.NppPluginNET
                 SetCobolLikeWords(true);
             }
             editor.SetSelection(editor.WordEndPosition(editor.GetCurrentPos(), true), editor.WordStartPosition(editor.GetCurrentPos(), true));
+
+            if (editor.GetSelectionLength() == 0)
+            {
+                return;
+            }
             // If new search
             if (sectionName != editor.GetSelText())
             {
@@ -342,14 +345,16 @@ namespace Kbg.NppPluginNET
         /// </summary>
         private static void AddVerticalLine()
         {
-            FrmAddVerticalLine frmAddVerticalLine = new FrmAddVerticalLine();
-            var res = frmAddVerticalLine.ShowDialog();
-            if (res == DialogResult.OK && frmAddVerticalLine.Position > 0)
+            using (FrmAddVerticalLine frmAddVerticalLine = new FrmAddVerticalLine())
             {
-                VerticalLine line = new VerticalLine() { Position = frmAddVerticalLine.Position, Color = frmAddVerticalLine.Colour.Value };
-                VerticalLines.Add(line);
-                Editor1.MultiEdgeAddLine(line.Position, new Colour(line.Color));
-                Editor2.MultiEdgeAddLine(line.Position, new Colour(line.Color));
+                var res = frmAddVerticalLine.ShowDialog();
+                if (res == DialogResult.OK && frmAddVerticalLine.Position > 0)
+                {
+                    VerticalLine line = new VerticalLine() { Position = frmAddVerticalLine.Position, Color = frmAddVerticalLine.Colour.Value };
+                    VerticalLines.Add(line);
+                    Editor1.MultiEdgeAddLine(line.Position, new Colour(line.Color));
+                    Editor2.MultiEdgeAddLine(line.Position, new Colour(line.Color));
+                }
             }
         }
 

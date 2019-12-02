@@ -33,25 +33,28 @@ namespace Kbg.NppPluginNET
             this.SNListBox = new System.Windows.Forms.ListBox();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.toolStripRefresh = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripToTop = new System.Windows.Forms.ToolStripButton();
             this.toolStripESections = new System.Windows.Forms.ToolStripButton();
             this.toolStripRSections = new System.Windows.Forms.ToolStripButton();
             this.toolStripUSections = new System.Windows.Forms.ToolStripButton();
             this.toolStripToBottom = new System.Windows.Forms.ToolStripButton();
-            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // SNListBox
             // 
             this.SNListBox.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.SNListBox.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawVariable;
             this.SNListBox.Font = new System.Drawing.Font("Lucida Console", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.SNListBox.FormattingEnabled = true;
             this.SNListBox.Location = new System.Drawing.Point(0, 25);
             this.SNListBox.Name = "SNListBox";
             this.SNListBox.Size = new System.Drawing.Size(284, 456);
             this.SNListBox.TabIndex = 0;
+            this.SNListBox.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.SNListBox_DrawItem);
             this.SNListBox.DoubleClick += new System.EventHandler(this.SNListBox_DoubleClick);
+            this.SNListBox.MouseDown += new System.Windows.Forms.MouseEventHandler(this.SNListBox_MouseDown);
             // 
             // toolStrip1
             // 
@@ -77,7 +80,12 @@ namespace Kbg.NppPluginNET
             this.toolStripRefresh.Name = "toolStripRefresh";
             this.toolStripRefresh.Size = new System.Drawing.Size(23, 22);
             this.toolStripRefresh.Text = "Refresh list";
-            this.toolStripRefresh.Click += new System.EventHandler(this.toolStripButton1_Click);
+            this.toolStripRefresh.Click += new System.EventHandler(this.ToolStripButton1_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(6, 25);
             // 
             // toolStripToTop
             // 
@@ -87,7 +95,7 @@ namespace Kbg.NppPluginNET
             this.toolStripToTop.Name = "toolStripToTop";
             this.toolStripToTop.Size = new System.Drawing.Size(23, 22);
             this.toolStripToTop.Text = "To Top";
-            this.toolStripToTop.Click += new System.EventHandler(this.toolStripToTop_Click);
+            this.toolStripToTop.Click += new System.EventHandler(this.ToolStripToTop_Click);
             // 
             // toolStripESections
             // 
@@ -97,7 +105,7 @@ namespace Kbg.NppPluginNET
             this.toolStripESections.Name = "toolStripESections";
             this.toolStripESections.Size = new System.Drawing.Size(23, 22);
             this.toolStripESections.Text = "E-Sections";
-            this.toolStripESections.Click += new System.EventHandler(this.toolStripESections_Click);
+            this.toolStripESections.Click += new System.EventHandler(this.ToolStripESections_Click);
             // 
             // toolStripRSections
             // 
@@ -107,7 +115,7 @@ namespace Kbg.NppPluginNET
             this.toolStripRSections.Name = "toolStripRSections";
             this.toolStripRSections.Size = new System.Drawing.Size(23, 22);
             this.toolStripRSections.Text = "R-Sections";
-            this.toolStripRSections.Click += new System.EventHandler(this.toolStripRSections_Click);
+            this.toolStripRSections.Click += new System.EventHandler(this.ToolStripRSections_Click);
             // 
             // toolStripUSections
             // 
@@ -117,7 +125,7 @@ namespace Kbg.NppPluginNET
             this.toolStripUSections.Name = "toolStripUSections";
             this.toolStripUSections.Size = new System.Drawing.Size(23, 22);
             this.toolStripUSections.Text = "U-Sections";
-            this.toolStripUSections.Click += new System.EventHandler(this.toolStripUSections_Click);
+            this.toolStripUSections.Click += new System.EventHandler(this.ToolStripUSections_Click);
             // 
             // toolStripToBottom
             // 
@@ -127,12 +135,7 @@ namespace Kbg.NppPluginNET
             this.toolStripToBottom.Name = "toolStripToBottom";
             this.toolStripToBottom.Size = new System.Drawing.Size(23, 22);
             this.toolStripToBottom.Text = "To Bottom";
-            this.toolStripToBottom.Click += new System.EventHandler(this.toolStripToBottom_Click);
-            // 
-            // toolStripSeparator1
-            // 
-            this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(6, 25);
+            this.toolStripToBottom.Click += new System.EventHandler(this.ToolStripToBottom_Click);
             // 
             // FrmSNDlg
             // 
@@ -144,7 +147,7 @@ namespace Kbg.NppPluginNET
             this.Name = "FrmSNDlg";
             this.Text = "Source Navigation";
             this.Shown += new System.EventHandler(this.FrmSNDlg_Shown);
-            this.VisibleChanged += new System.EventHandler(this.frmSNDlg_VisibleChanged);
+            this.VisibleChanged += new System.EventHandler(this.FrmSNDlg_VisibleChanged);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);

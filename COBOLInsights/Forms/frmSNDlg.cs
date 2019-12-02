@@ -24,7 +24,7 @@ namespace Kbg.NppPluginNET
             synchronizationContext = SynchronizationContext.Current;
         }
 
-        private void toolStripButton1_Click(object sender, EventArgs e)
+        private void ToolStripButton1_Click(object sender, EventArgs e)
         {
             UpdateSNListBox();
         }
@@ -40,8 +40,11 @@ namespace Kbg.NppPluginNET
             SourceNavigationItem selectedItem = (SourceNavigationItem)SNListBox.SelectedItem;
             int line = selectedItem.LineNumber;
             int linesOnScreen = Editor.LinesOnScreen();
+            string sectionName = selectedItem.Name.Trim().Split(' ')[0];
+            string lineText = Editor.GetLine(line);
             Editor.GotoLine(line);
             Editor.SetFirstVisibleLine(line - linesOnScreen / 2 + 1 < 0 ? 0 : line - linesOnScreen / 2 + 1);
+            Editor.SetSelection(Editor.PositionFromLine(line).Value + lineText.IndexOf(sectionName) + sectionName.Length, Editor.PositionFromLine(line).Value + lineText.IndexOf(sectionName));
             Editor.GrabFocus();
         }
 
@@ -93,7 +96,7 @@ namespace Kbg.NppPluginNET
             }), snlist);
         }
 
-        private void frmSNDlg_VisibleChanged(object sender, EventArgs e)
+        private void FrmSNDlg_VisibleChanged(object sender, EventArgs e)
         {
             if(this.Visible==true)
             {
@@ -101,7 +104,7 @@ namespace Kbg.NppPluginNET
             }
         }
 
-        private void toolStripToTop_Click(object sender, EventArgs e)
+        private void ToolStripToTop_Click(object sender, EventArgs e)
         {
             SNListBox.TopIndex = 0;
             SNListBox.SelectedIndex = 0;
@@ -118,22 +121,22 @@ namespace Kbg.NppPluginNET
             SNListBox.SelectedIndex = index;
         }
 
-        private void toolStripESections_Click(object sender, EventArgs e)
+        private void ToolStripESections_Click(object sender, EventArgs e)
         {
             FindSectionInProcedureDivision(" e");
         }
 
-        private void toolStripRSections_Click(object sender, EventArgs e)
+        private void ToolStripRSections_Click(object sender, EventArgs e)
         {
             FindSectionInProcedureDivision(" r");
         }
 
-        private void toolStripUSections_Click(object sender, EventArgs e)
+        private void ToolStripUSections_Click(object sender, EventArgs e)
         {
             FindSectionInProcedureDivision(" u");
         }
 
-        private void toolStripToBottom_Click(object sender, EventArgs e)
+        private void ToolStripToBottom_Click(object sender, EventArgs e)
         {
             SNListBox.TopIndex = SNListBox.Items.Count - 1;
             SNListBox.SelectedIndex = SNListBox.Items.Count - 1;
@@ -147,6 +150,105 @@ namespace Kbg.NppPluginNET
                 result.Add(item);
             }
             return result;
+        }
+
+        private void SNListBox_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            e.DrawBackground();
+            e.DrawFocusRectangle();
+
+            Color color = Color.Black;
+            FontStyle fs = FontStyle.Regular;
+
+            if (!((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" "))
+            {
+                fs = FontStyle.Bold;
+            }
+            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" E") && !((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" EXTENDED"))
+            {
+                color = Color.DarkGreen;
+            }
+            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" S") ||
+                ((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" A") ||
+                ((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" B") ||
+                ((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" Z"))
+            {
+                color = Color.Gray;
+                fs = FontStyle.Italic;
+            }
+            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" R"))
+            {
+                color = Color.DarkBlue;
+            }
+            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" U"))
+            {
+                color = Color.DarkOrange;
+            }
+            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" Y"))
+            {
+                color = Color.DarkSlateGray;
+            }
+
+            e.Graphics.DrawString(((SourceNavigationItem)SNListBox.Items[e.Index]).Name, new Font("Lucida Console", 9.75F, fs, GraphicsUnit.Point, 0), new SolidBrush(color), e.Bounds);
+        }
+
+        private void SNListBox_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                Editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
+                ContextMenuStrip menuStrip = new ContextMenuStrip();
+                int index = SNListBox.IndexFromPoint(e.X, e.Y);
+                SNListBox.SetSelected(index, true);
+                string text = Editor.GetText(Editor.GetTextLength());
+                string search = @"^[ ]*PERFORM[\s]*" + ((SourceNavigationItem)SNListBox.Items[index]).Name.Trim().Split(' ')[0] + @"[\s]*$";
+                MatchCollection matches = Regex.Matches(text, search, RegexOptions.Multiline);
+                if (matches.Count > 0)
+                {
+                    foreach (Match match in matches)
+                    {
+                        string itemName = "";
+                        foreach (SourceNavigationItem item in GetStoredSectionsList())
+                        {
+                            int line = Editor.LineFromPosition(new Position(match.Index));
+                            string currentText = "";
+                            if (item.LineNumber > line)
+                            {
+                                break;
+                            }
+                            else
+                            {
+                                currentText = item.Name.Trim().Split(' ')[0];
+                            }
+                            if (currentText != "")
+                            {
+                                itemName = (line + 1) + ": " + currentText;
+
+                            }
+                            Editor.LineFromPosition(new Position(match.Index));
+                        }
+
+                        menuStrip.Items.Add(itemName).Click += FrmSNDlg_SNListBox_Context_Click;
+                    }
+                }
+                if (menuStrip.Items.Count > 0)
+                {
+                    menuStrip.Show(SNListBox, e.X, e.Y);
+                }
+            }
+        }
+
+        private void FrmSNDlg_SNListBox_Context_Click(object sender, EventArgs e)
+        {
+            Editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
+            int line = int.Parse(((ToolStripItem)sender).Text.Split(':')[0]) - 1;
+            int linesOnScreen = Editor.LinesOnScreen();
+            string lineText = Editor.GetLine(line);
+            Editor.GotoLine(line);
+            Editor.SetFirstVisibleLine(line - linesOnScreen / 2 + 1 < 0 ? 0 : line - linesOnScreen / 2 + 1);
+            string sectionName = lineText.Trim().Split(' ')[1];
+            Editor.SetSelection(Editor.PositionFromLine(line).Value + lineText.IndexOf(sectionName)+sectionName.Length, Editor.PositionFromLine(line).Value + lineText.IndexOf(sectionName));
+            Editor.GrabFocus();
         }
     }
 }
