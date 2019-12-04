@@ -45,7 +45,6 @@ namespace Kbg.NppPluginNET
             // SNListBox
             // 
             this.SNListBox.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.SNListBox.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawVariable;
             this.SNListBox.Font = new System.Drawing.Font("Lucida Console", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.SNListBox.FormattingEnabled = true;
             this.SNListBox.Location = new System.Drawing.Point(0, 25);

@@ -125,10 +125,7 @@ namespace Kbg.NppPluginNET
                 SourceNavigationDialog();
             }
             var editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
-            if (!editor.GetWordChars().Contains("-"))
-            {
-                SetCobolLikeWords(true);
-            }
+            CheckAndSwitchOnCobolWords();
             editor.SetSelection(editor.WordEndPosition(editor.GetCurrentPos(), true), editor.WordStartPosition(editor.GetCurrentPos(), true));
 
             if (editor.GetSelectionLength() == 0)
@@ -136,9 +133,9 @@ namespace Kbg.NppPluginNET
                 return;
             }
             // If new search
-            if (sectionName != editor.GetSelText())
+            if (sectionName != editor.GetSelText().ToUpper())
             {
-                sectionName = editor.GetSelText();
+                sectionName = editor.GetSelText().ToUpper();
                 int sectionImplementationLine = GetSectionImplementationLine(sectionName);
                 if (sectionImplementationLine >= 0)
                 {
@@ -148,7 +145,7 @@ namespace Kbg.NppPluginNET
                         {
                             SearchNextSectionOrPerform(sectionName, 0);
                         }
-                            
+
                     }
                     else
                     {
@@ -168,6 +165,15 @@ namespace Kbg.NppPluginNET
                 {
                     SearchNextSectionOrPerform(sectionName, 0);
                 }
+            }
+        }
+
+        public static void CheckAndSwitchOnCobolWords()
+        {
+            var editor = new ScintillaGateway(PluginBase.GetCurrentScintilla());
+            if (!editor.GetWordChars().Contains("-"))
+            {
+                SetCobolLikeWords(true);
             }
         }
 
@@ -209,7 +215,7 @@ namespace Kbg.NppPluginNET
             {
                 foreach (var item in ((FrmSNDlg)SNDialogStruct.Form).GetStoredSectionsList())
                 {
-                    if (item.Name.Trim().StartsWith(name))
+                    if (item.Name.Trim().StartsWith(name, StringComparison.OrdinalIgnoreCase))
                     {
                         return item.LineNumber;
                     }

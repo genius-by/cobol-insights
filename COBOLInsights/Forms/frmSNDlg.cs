@@ -21,6 +21,7 @@ namespace Kbg.NppPluginNET
         {
             InitializeComponent();
             SNListBox.DisplayMember = "Name";
+            SNListBox.DrawMode = DrawMode.OwnerDrawFixed;
             synchronizationContext = SynchronizationContext.Current;
         }
 
@@ -41,7 +42,7 @@ namespace Kbg.NppPluginNET
             int line = selectedItem.LineNumber;
             int linesOnScreen = Editor.LinesOnScreen();
             string sectionName = selectedItem.Name.Trim().Split(' ')[0];
-            string lineText = Editor.GetLine(line);
+            string lineText = Editor.GetLine(line).ToUpper();
             Editor.GotoLine(line);
             Editor.SetFirstVisibleLine(line - linesOnScreen / 2 + 1 < 0 ? 0 : line - linesOnScreen / 2 + 1);
             Editor.SetSelection(Editor.PositionFromLine(line).Value + lineText.IndexOf(sectionName) + sectionName.Length, Editor.PositionFromLine(line).Value + lineText.IndexOf(sectionName));
@@ -72,14 +73,14 @@ namespace Kbg.NppPluginNET
             });
             string text = Editor.GetText(Editor.GetTextLength());
             string search = @"^[\s]*([\w|-]+)[\s]+(SECTION|DIVISION)[\s]*\.[\s]*$";
-            MatchCollection matches = Regex.Matches(text, search, RegexOptions.Multiline);
+            MatchCollection matches = Regex.Matches(text, search, RegexOptions.Multiline | RegexOptions.IgnoreCase);
             if (matches.Count > 0)
             {
                 foreach (Match match in matches)
                 {
                     SNList.Add(new SourceNavigationItem
                     {
-                        Name = (match.Groups[2].Value == "SECTION" ? " " : "") + match.Groups[1].Value + " " + match.Groups[2].Value,
+                        Name = ((match.Groups[2].Value.StartsWith("SECTION", StringComparison.OrdinalIgnoreCase) ? " " : "") + match.Groups[1].Value + " " + match.Groups[2].Value).ToUpper(),
                         LineNumber = Editor.LineFromPosition(new Position(match.Index))
                     });
                 }
@@ -154,42 +155,56 @@ namespace Kbg.NppPluginNET
 
         private void SNListBox_DrawItem(object sender, DrawItemEventArgs e)
         {
+            SNListBox.BackColor = SystemColors.Window;
             e.DrawBackground();
             e.DrawFocusRectangle();
 
             Color color = Color.Black;
             FontStyle fs = FontStyle.Regular;
 
+            
+
             if (!((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" "))
             {
                 fs = FontStyle.Bold;
             }
-            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" E") && !((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" EXTENDED"))
+            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" E", StringComparison.OrdinalIgnoreCase) && !((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" EXTENDED", StringComparison.OrdinalIgnoreCase))
             {
                 color = Color.DarkGreen;
             }
-            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" S") ||
-                ((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" A") ||
-                ((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" B") ||
-                ((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" Z"))
+            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" S", StringComparison.OrdinalIgnoreCase) ||
+                ((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" A", StringComparison.OrdinalIgnoreCase) ||
+                ((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" B", StringComparison.OrdinalIgnoreCase) ||
+                ((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" Z", StringComparison.OrdinalIgnoreCase))
             {
                 color = Color.Gray;
                 fs = FontStyle.Italic;
             }
-            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" R"))
+            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" R", StringComparison.OrdinalIgnoreCase))
             {
                 color = Color.DarkBlue;
             }
-            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" U"))
+            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" U", StringComparison.OrdinalIgnoreCase))
             {
                 color = Color.DarkOrange;
             }
-            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" Y"))
+            else if (((SourceNavigationItem)SNListBox.Items[e.Index]).Name.StartsWith(" Y", StringComparison.OrdinalIgnoreCase))
             {
                 color = Color.DarkSlateGray;
             }
+            using (FontFamily fontFamily = new FontFamily("Consolas"))
+            {
+                if (fontFamily.Name == "Consolas")
+                {
+                    TextRenderer.DrawText(e.Graphics, ((SourceNavigationItem)SNListBox.Items[e.Index]).Name, new Font(fontFamily, 9.75F, fs, GraphicsUnit.Point), e.Bounds, color, TextFormatFlags.Default);
+ //                   e.Graphics.DrawString(((SourceNavigationItem)SNListBox.Items[e.Index]).Name, new Font(fontFamily, 9.75F, fs, GraphicsUnit.Point), new SolidBrush(color), e.Bounds);
+                }
+                else
+                {
+                    TextRenderer.DrawText(e.Graphics, ((SourceNavigationItem)SNListBox.Items[e.Index]).Name, new Font("Lucida Console", 9.75F, fs, GraphicsUnit.Point), e.Bounds, color, TextFormatFlags.Default);
+                }
 
-            e.Graphics.DrawString(((SourceNavigationItem)SNListBox.Items[e.Index]).Name, new Font("Lucida Console", 9.75F, fs, GraphicsUnit.Point, 0), new SolidBrush(color), e.Bounds);
+            }
         }
 
         private void SNListBox_MouseDown(object sender, MouseEventArgs e)
@@ -201,8 +216,8 @@ namespace Kbg.NppPluginNET
                 int index = SNListBox.IndexFromPoint(e.X, e.Y);
                 SNListBox.SetSelected(index, true);
                 string text = Editor.GetText(Editor.GetTextLength());
-                string search = @"^[ ]*PERFORM[\s]*" + ((SourceNavigationItem)SNListBox.Items[index]).Name.Trim().Split(' ')[0] + @"[\s]*$";
-                MatchCollection matches = Regex.Matches(text, search, RegexOptions.Multiline);
+                string search = @"^[ ]*PERFORM[\s]*" + ((SourceNavigationItem)SNListBox.Items[index]).Name.Trim().Split(' ')[0] + @"[\s]*[\.]{0,1}[\s]*$";
+                MatchCollection matches = Regex.Matches(text, search, RegexOptions.Multiline | RegexOptions.IgnoreCase);
                 if (matches.Count > 0)
                 {
                     foreach (Match match in matches)
@@ -247,8 +262,9 @@ namespace Kbg.NppPluginNET
             Editor.GotoLine(line);
             Editor.SetFirstVisibleLine(line - linesOnScreen / 2 + 1 < 0 ? 0 : line - linesOnScreen / 2 + 1);
             string sectionName = lineText.Trim().Split(' ')[1];
-            Editor.SetSelection(Editor.PositionFromLine(line).Value + lineText.IndexOf(sectionName)+sectionName.Length, Editor.PositionFromLine(line).Value + lineText.IndexOf(sectionName));
+            Editor.SetSelection(Editor.WordEndPosition(new Position(Editor.PositionFromLine(line).Value + lineText.IndexOf(sectionName)), true), Editor.PositionFromLine(line).Value + lineText.IndexOf(sectionName));
             Editor.GrabFocus();
+            ((ToolStripItem)sender).Owner.Dispose();
         }
     }
 }
