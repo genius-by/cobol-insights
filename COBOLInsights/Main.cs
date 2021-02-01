@@ -258,7 +258,7 @@ namespace Kbg.NppPluginNET
                                                     "*-------------------------------------------------------------------------------\n" +
                                                     "\n    ." +
                                                     "\n\n" +
-                                                    " {*} - EXIT.\n" +
+                                                    " {*}-EXIT.\n" +
                                                     "    EXIT."));
             Snippets.Add(new LineSurroundingSnippet(name: "Marke #999#",
                                                     snippetBodyBefore: "*#999# Anfang:",

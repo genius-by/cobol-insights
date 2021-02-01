@@ -71,19 +71,22 @@ namespace Kbg.NppPluginNET
                 Name = "<TOP>",
                 LineNumber = 0
             });
-            string text = Editor.GetText(Editor.GetTextLength());
-            string search = @"^[\s]*([\w|-]+)[\s]+(SECTION|DIVISION)[\s]*\.[\s]*$";
-            MatchCollection matches = Regex.Matches(text, search, RegexOptions.Multiline | RegexOptions.IgnoreCase);
-            if (matches.Count > 0)
+            if (Editor.GetTextLength()<=999999)
             {
-                foreach (Match match in matches)
+                string text = Editor.GetText(Editor.GetTextLength());
+                string search = @"^[\s]*([\w|-]+)[\s]+(SECTION|DIVISION)[\s]*\.[\s]*$";
+                MatchCollection matches = Regex.Matches(text, search, RegexOptions.Multiline | RegexOptions.IgnoreCase);
+                if (matches.Count > 0)
                 {
-                    SNList.Add(new SourceNavigationItem
+                    foreach (Match match in matches)
                     {
-                        Name = ((match.Groups[2].Value.StartsWith("SECTION", StringComparison.OrdinalIgnoreCase) ? " " : "") + match.Groups[1].Value + " " + match.Groups[2].Value).ToUpper(),
-                        LineNumber = Editor.LineFromPosition(new Position(match.Index))
-                    });
-                }
+                        SNList.Add(new SourceNavigationItem
+                        {
+                            Name = ((match.Groups[2].Value.StartsWith("SECTION", StringComparison.OrdinalIgnoreCase) ? " " : "") + match.Groups[1].Value + " " + match.Groups[2].Value).ToUpper(),
+                            LineNumber = Editor.LineFromPosition(new Position(match.Index))
+                        });
+                    }
+                } 
             }
             PostDataToSNListBox(SNList);
         }
